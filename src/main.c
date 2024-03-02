@@ -73,7 +73,7 @@ void serial_cb(const struct device *dev, void *user_data)
 		struct canscribe_msg msg;
 
 		if (c == 0x00 && rx_buf_pos > 0) {
-			uart_fifo_read(uart_dev, &c, 1);
+			// uart_fifo_read(uart_dev, &c, 1);
 			/* terminate the message with 0x00 */
 			rx_buf[rx_buf_pos] = 0x00;
 
@@ -122,7 +122,7 @@ void rx_thread(void *unused1, void *unused2, void *unused3) {
 	struct canscribe_msg temp_msg;
 
 	while(1) {
-		if(k_msgq_get(&uart_msgq, &temp_msg, K_MSEC(1000))) {
+		if(k_msgq_get(&uart_msgq, &temp_msg, K_FOREVER)) {
 			if(!valid_crc(&temp_msg)) // WARNING: Not sure if it will work
 				continue;
 			tx_frame = temp_msg.frame;
