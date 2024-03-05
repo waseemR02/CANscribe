@@ -11,6 +11,7 @@
 #include <zephyr/drivers/uart.h>
 #include <zephyr/drivers/can.h>
 #include <zephyr/logging/log.h>
+#include <app_version.h>
 
 LOG_MODULE_REGISTER(can_read_test , CONFIG_LOG_DEFAULT_LEVEL);
 
@@ -128,4 +129,10 @@ void rx_thread(void *unused1, void *unused2, void *unused3) {
 			tx_frame = temp_msg.frame;
 		}
 	}
+}
+
+
+int main() {
+	printk("\nCANscribe: v%s\n\n", APP_VERSION_STRING);
+
 }
