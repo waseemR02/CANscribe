@@ -7,18 +7,25 @@
 #include <zephyr/devicetree.h>
 #include <zephyr/sys/byteorder.h>
 #include <zephyr/sys/crc.h>
+#include <zephyr/sys/util.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/drivers/can.h>
 #include <zephyr/logging/log.h>
+#include <app_version.h>
 
 LOG_MODULE_REGISTER(can_read_test , CONFIG_LOG_DEFAULT_LEVEL);
 
 #define MSG_SIZE 100
+#define UART_CAN_THREAD_STACK_SIZE 512
+#define UART_CAN_THREAD_PRIORITY 2
 
 /* queue to store up to 10 messages (aligned to 1-byte boundary) */
 K_MSGQ_DEFINE(uart_msgq, MSG_SIZE, 10, 1);
-CAN_MSGQ_DEFINE(rx_msgq, 10);
+CAN_MSGQ_DEFINE(can_msgq, 10);
+
+/* Define stack size for uart to can thread */
+K_THREAD_STACK_DEFINE(uart_can_thread_stack, UART_CAN_THREAD_STACK_SIZE);
 
 /* DT spec for uart */
 static const struct device *const uart_dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_shell_uart));
@@ -32,26 +39,32 @@ static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
 /* receive buffer used in UART ISR callback */
 static uint8_t rx_buf[MSG_SIZE];
 static int rx_buf_pos;
+static uint8_t tx_buf[MSG_SIZE];
 
 struct canscribe_msg {
 	struct can_frame frame;
 	uint32_t crc;
 };
 
-struct can_frame tx_frame;
-
-// #define CRC_CHECKED_SIZE sizeof(frame)
-
-// crc32_ieee(frame, 122);
-
+struct can_frame uart_can_frame;
+struct can_frame can_uart_frame;
 
 /*
- * Deserialized with cobs
+ * Deserialize with cobs
  * Returns 0 on succes else -1
  */
-void deserialize(uint8_t *message, struct canscribe_msg *msg) {
-
+int deserialize(uint8_t *message, struct canscribe_msg *msg) {
+	return 0;
 }
+
+/*
+ * Serialize with cobs
+ * Returns 0 in success else -1
+ */
+int serialize(uint8_t *message, struct canscribe_msg *msg) {
+	return 0;
+}
+
 /*
  * Read characters from UART until line end is detected. Afterwards push the
  * data to the message queue.
@@ -73,7 +86,7 @@ void serial_cb(const struct device *dev, void *user_data)
 		struct canscribe_msg msg;
 
 		if (c == 0x00 && rx_buf_pos > 0) {
-			uart_fifo_read(uart_dev, &c, 1);
+			// uart_fifo_read(uart_dev, &c, 1);
 			/* terminate the message with 0x00 */
 			rx_buf[rx_buf_pos] = 0x00;
 
@@ -113,7 +126,10 @@ bool valid_crc(struct canscribe_msg *msg) {
 /*
  * This thread recieves uart messages and parses them to send to can bus
  */
-void rx_thread(void *unused1, void *unused2, void *unused3) {
+
+struct k_thread uart_can_thread_data;
+
+void uart_can_thread(void *unused1, void *unused2, void *unused3) {
 	ARG_UNUSED(unused1);
 	ARG_UNUSED(unused2);
 	ARG_UNUSED(unused3);
@@ -122,10 +138,111 @@ void rx_thread(void *unused1, void *unused2, void *unused3) {
 	struct canscribe_msg temp_msg;
 
 	while(1) {
-		if(k_msgq_get(&uart_msgq, &temp_msg, K_MSEC(1000))) {
+		if(k_msgq_get(&uart_msgq, &temp_msg, K_FOREVER)) {
 			if(!valid_crc(&temp_msg)) // WARNING: Not sure if it will work
 				continue;
-			tx_frame = temp_msg.frame;
+			uart_can_frame = temp_msg.frame;
+			can_send(can_dev, &uart_can_frame, K_FOREVER, NULL, NULL);
+			LOG_INF("CAN frame sent: ID: %x", uart_can_frame.id);
+			LOG_INF("CAN frame data: %d %d %d", uart_can_frame.data_32[0],
+								uart_can_frame.data[4],
+								uart_can_frame.data[5]);
+			gpio_pin_toggle_dt(&led);
 		}
+	}
+}
+
+/*
+ * Can filter to read all frames with extended IDs
+ */ 
+const struct can_filter can_uart_filter = {
+	.flags = CAN_FILTER_IDE,
+};
+
+/*
+ * The main function spawns the uart_to_can_thread and handles can_to_uart interface
+ */
+int main() {
+	printk("\nCANscribe: v%s\n\n", APP_VERSION_STRING);
+
+	int err;
+
+	/* Device ready checks*/
+
+	if (!device_is_ready(can_dev)) {
+		LOG_ERR("CAN: Device %s not ready.", can_dev->name);
+		return 0;
+	}
+
+	if (!device_is_ready(uart_dev)) {
+		LOG_ERR("UART device not found!");
+		return 0;
+	}
+
+	if (!gpio_is_ready_dt(&led))
+	{
+		LOG_ERR("Error: Led not ready.");
+		return 0;
+	}
+
+	/* Configure devices */
+	if (can_start(can_dev)) {
+		LOG_ERR("Error starting CAN controller.");
+		return 0;
+	}
+
+	int filter_id = can_add_rx_filter_msgq(can_dev, &can_msgq, &can_uart_filter);
+	if (filter_id < 0)
+	{
+		LOG_ERR("Unable to add can msgq [%d]", filter_id);
+		return 0;
+	}
+
+	err = uart_irq_callback_user_data_set(uart_dev, serial_cb, NULL);
+
+	if (err < 0) {
+		if (err == -ENOTSUP) {
+			LOG_ERR("Interrupt-driven UART API support not enabled");
+		} else if (err == -ENOSYS) {
+			LOG_ERR("UART device does not support interrupt-driven API");
+		} else {
+			LOG_ERR("Error setting UART callback: %d", err);
+		}
+		return 0;
+	}
+	uart_irq_rx_enable(uart_dev);
+
+	if (gpio_pin_configure_dt(&led, GPIO_OUTPUT_ACTIVE) < 0)
+	{
+		LOG_ERR("Error: Led not configured");
+		return 0;
+	}
+
+
+	k_tid_t tx_tid = k_thread_create(&uart_can_thread_data, uart_can_thread_stack,
+				 K_THREAD_STACK_SIZEOF(uart_can_thread_stack),
+				 uart_can_thread, NULL, NULL, NULL,
+				 UART_CAN_THREAD_PRIORITY, 0, K_NO_WAIT);
+
+	if (!tx_tid) {
+		LOG_ERR("ERROR spawning uart_to_can thread");
+	}
+
+	LOG_INF("Initialization completed successfully");
+
+	/* Handles can to uart interface */
+	struct canscribe_msg can_uart_msg;
+	while(true) {
+		/* Blocking Function */
+		k_msgq_get(&can_msgq, &can_uart_frame, K_FOREVER);
+		
+		can_uart_msg.frame = can_uart_frame;
+		can_uart_msg.crc = crc32_ieee((uint8_t *)&can_uart_frame, 17);
+
+		if(!serialize(tx_buf, &can_uart_msg)) {
+			LOG_ERR("Error serializing can message!!");
+		}
+
+		send_to_uart(tx_buf, MSG_SIZE); // Look into how you are going to handle the size
 	}
 }
