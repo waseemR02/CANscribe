@@ -62,6 +62,19 @@ int deserialize(uint8_t *message, struct canscribe_msg *msg) {
  * Returns 0 in success else -1
  */
 int serialize(uint8_t *message, struct canscribe_msg *msg) {
+	
+	uint8_t data[sizeof(msg->frame.data) + 2]; 
+	data[0] = 0x00;
+	for (int i = 0; i < sizeof(msg->frame.data); i++) {
+		data[i+1] = msg->frame.data[i];
+	}
+	data[sizeof(msg->frame.data) + 2] = 0x00;
+	
+	for (int i = sizeof(msg->frame.data)+1; i >= 0; i--) {
+		if (msg->frame.data[i] == 0x00) {
+			msg->frame.data[i] = (uint8_t) i;
+		}
+	}
 	return 0;
 }
 
