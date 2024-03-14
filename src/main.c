@@ -13,6 +13,7 @@
 #include <zephyr/drivers/can.h>
 #include <zephyr/logging/log.h>
 #include <app_version.h>
+#include <stdlib.h>
 
 LOG_MODULE_REGISTER(can_read_test , CONFIG_LOG_DEFAULT_LEVEL);
 
@@ -57,25 +58,54 @@ int deserialize(uint8_t *message, struct canscribe_msg *msg) {
 	return 0;
 }
 
+
+/*Array to store serialized data*/
+int len = sizeof(canscribe_msg);
+uint8_t* serialized = malloc((len+2)*sizeof(uint8_t));
+
 /*
  * Serialize with cobs
  * Returns 0 in success else -1
  */
-int serialize(uint8_t *message, struct canscribe_msg *msg) {
-	
-	uint8_t data[sizeof(msg->frame.data) + 2]; 
-	data[0] = 0x00;
-	for (int i = 0; i < sizeof(msg->frame.data); i++) {
-		data[i+1] = msg->frame.data[i];
-	}
-	data[sizeof(msg->frame.data) + 2] = 0x00;
-	
-	for (int i = sizeof(msg->frame.data)+1; i >= 0; i--) {
-		if (msg->frame.data[i] == 0x00) {
-			msg->frame.data[i] = (uint8_t) i;
-		}
-	}
-	return 0;
+int serialize(uint8_t *message, struct canscribe_msg *msg, int len) {
+    
+	/*Allocate Memory*/
+  uint8_t* array_zeros = malloc((len+2)*sizeof(uint8_t));
+
+	/*
+	* Store the data and the zeros in the serialized array
+	*/
+  serialized[0] = 0; //First element of serialized
+	for (int i = 0; i < len; i++) {
+  serialized[i+1] = msg->frame.data[i]; //assign values from struct in serialized
+  }
+	serialized[len+2-1] = 0; //Last element of serialized
+   
+  int zero_count = 0; //variable to count number of zeros in serialized 
+    
+	/*
+	* Store the position of 0's in the array_zeros
+	*/
+	for (int i = 0; i < len+2; i++) {
+    if (serialized[i] == 0) {
+      array_zeros[zero_count] = i; 
+      zero_count++;
+    }
+  }
+
+  int k = 0; //variable to store the difference in the pos of adjacent 0's
+    
+	/*
+	* Update the serialized array with the difference in the position of adjacent 0's
+	*/
+	for (int i = 0; i < zero_count - 1; i++) {
+    k = array_zeros[i+1] - array_zeros[i]; //Compute difference
+    serialized[(int)array_zeros[i]] = k;
+  }
+
+  free(array_zeros);
+
+  return 0;
 }
 
 /*
@@ -252,7 +282,7 @@ int main() {
 		can_uart_msg.frame = can_uart_frame;
 		can_uart_msg.crc = crc32_ieee((uint8_t *)&can_uart_frame, 17);
 
-		if(!serialize(tx_buf, &can_uart_msg)) {
+		if(!serialize(tx_buf, &can_uart_msg, len)) {
 			LOG_ERR("Error serializing can message!!");
 		}
 
