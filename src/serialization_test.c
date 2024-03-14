@@ -43,6 +43,31 @@ uint8_t* serialize(uint8_t* data, int len) {
     //serialized[len + 1] = 0x00;
 }
 
+uint8_t* deserialize(uint8_t* data, int len) {
+  
+  uint8_t* array_zeros = malloc(len*sizeof(uint8_t));
+  uint8_t* deserialized = malloc(len*sizeof(uint8_t));
+  
+  int i = 0;
+  int j = 0;
+  
+  while (j < len) {
+    array_zeros[j] = i;
+    i = data[i];
+    j++;
+  }
+
+  for (int i = 0; i < len+2; i++) {
+    data[(int)array_zeros[i]] = 0;
+  }
+
+  for (int i = 0; i < len; i++) {
+    deserialized[i] = data[i+1];
+  }
+
+  return deserialized;
+}
+
 int main() {
 
     /*
@@ -79,5 +104,12 @@ int main() {
     }
     printf("\n");
     /*-----------------------------------------------------*/
+
+    uint8_t* decoded_data = deserialize(data, len+2);
+    printf("Deserialized: ");
+    for (int i = 0; i < len; i++) {
+      printf("%x ", decoded_data[i]);
+    }
+    printf("\n");
     return 0;
 }
