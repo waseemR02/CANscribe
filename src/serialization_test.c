@@ -13,20 +13,34 @@ uint8_t* str_to_byte(char str[]) {
     return byte_val;
 }
 
-uint8_t* serialize(uint8_t* data, uint8_t len) {
-    uint8_t* serialized = malloc(len + 2);
-    serialized[0] = 0x00;
-    for (int i = 0; i < len; i++) {
-        serialized[i+1] = data[i];
-    }
-    serialized[len + 2] = 0x00;
+uint8_t* serialize(uint8_t* data, int len) {
+    //printf("%d", len);
+    uint8_t* serialized = malloc((len+2)*sizeof(uint8_t));
+    uint8_t* array_zeros = malloc((len+2)*sizeof(uint8_t));
 
-    for (int i = len; i >= 0; i--) {
-        if (data[i] == 0x00) {
-            data[i] = (uint8_t) i;
-        }
+    serialized[0] = 0;
+    for (int i = 0; i < len; i++) {
+      serialized[i+1] = data[i]; //data accessing beyond length
     }
+    serialized[len+2-1] = 0;
+   
+    int zero_count = 0; 
+    for (int i = 0; i < len+2; i++) {
+      if (serialized[i] == 0) {
+        array_zeros[zero_count] = i;
+        zero_count++;
+      }
+    }
+
+    int k = 0;
+    //array_zeros = malloc((zero_count)*sizeof(uint8_t));
+    for (int i = 0; i < zero_count - 1; i++) {
+      k = array_zeros[i+1] - array_zeros[i];
+      serialized[(int)array_zeros[i]] = k;
+    }
+
     return serialized;
+    //serialized[len + 1] = 0x00;
 }
 
 int main() {
@@ -34,12 +48,12 @@ int main() {
     /*
     * Get the string and convert it to byte values
     */
-    int len;
-    char str[len];
+    const int MAX_LEN = 255;
+    char str[MAX_LEN];
 
     printf("Type anything: ");
     scanf("%s", str);
-    len = strlen(str);
+    int len = strlen(str);
 
     uint8_t* val = str_to_byte(str);
 
@@ -51,7 +65,7 @@ int main() {
 
     printf("\n");
 
-    free(val); // Free the allocated memory
+    //free(val); // Free the allocated memory
 
     /*------------------------------------------------*/
 
@@ -59,10 +73,9 @@ int main() {
     * Serialize the byte values
     */
     uint8_t* data = serialize(val, len);
-
     printf("Serialized: ");
     for (int i = 0; i < len + 2; i++) {
-        printf("%d ", data[i]);
+        printf("%x ", data[i]);
     }
     printf("\n");
     /*-----------------------------------------------------*/
