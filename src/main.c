@@ -50,17 +50,44 @@ struct canscribe_msg {
 struct can_frame uart_can_frame;
 struct can_frame can_uart_frame;
 
+int len = sizeof(canscribe_msg);
+
 /*
  * Deserialize with cobs
  * Returns 0 on succes else -1
  */
-int deserialize(uint8_t *message, struct canscribe_msg *msg) {
+
+uint8_t* deserialized = malloc((len+2)*sizeof(uint8_t));
+
+int deserialize(uint8_t *message, struct canscribe_msg *msg, int len) {
+
+	uint8_t* array_zeros = malloc(len*sizeof(uint8_t));
+
+	int i = 0;
+  	int j = 0;
+  
+  	while (j < len) {
+    	array_zeros[j] = i;
+    	i = msg->frame.data[i];
+    	j++;
+  	}
+
+  	for (int i = 0; i < len+2; i++) {
+    	msg->frame.data[(int)array_zeros[i]] = 0;
+  	}
+
+	free(array_zeros);
+
+  	for (int i = 0; i < len; i++) {
+    	deserialized[i] = msg->frame.data[i+1];
+  	}
+	
 	return 0;
 }
 
 
 /*Array to store serialized data*/
-int len = sizeof(canscribe_msg);
+
 uint8_t* serialized = malloc((len+2)*sizeof(uint8_t));
 
 /*
