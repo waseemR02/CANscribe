@@ -63,23 +63,23 @@ int deserialize(uint8_t *message, struct canscribe_msg *msg, int len) {
   uint8_t* array_zeros = malloc(len*sizeof(uint8_t));
 
 	int i = 0;
-  	int j = 0;
+  int j = 0;
   
-  	while (j < len) {
-    	array_zeros[j] = i;
-    	i = msg->frame.data[i];
-    	j++;
-  	}
+  while (j < len) {
+    array_zeros[j] = i;
+    i = msg->frame.data[i];
+    j++;
+  }
 
-  	for (int i = 0; i < len+2; i++) {
-    	msg->frame.data[(int)array_zeros[i]] = 0;
-  	}
+  for (int i = 0; i < len+2; i++) {
+    msg->frame.data[(int)array_zeros[i]] = 0;
+	}
 
 	free(array_zeros);
 
-  	for (int i = 0; i < len; i++) {
-    	message[i] = msg->frame.data[i+1];
-  	}
+  for (int i = 0; i < len; i++) {
+    message[i] = msg->frame.data[i+1];
+  }
 	
 	return 0;
 }
@@ -92,7 +92,7 @@ int deserialize(uint8_t *message, struct canscribe_msg *msg, int len) {
 int serialize(uint8_t *message, struct canscribe_msg *msg, int len) {
     
 	/*Allocate Memory*/
-  message = malloc((len+2)*sizeof(uint8_t));
+  message = malloc((len+3)*sizeof(uint8_t));
   uint8_t* array_zeros = malloc((len+2)*sizeof(uint8_t));
 
 	/*
@@ -102,14 +102,15 @@ int serialize(uint8_t *message, struct canscribe_msg *msg, int len) {
 	for (int i = 0; i < len; i++) {
   message[i+1] = msg->frame.data[i]; //assign values from struct in message
   }
-	message[len+2-1] = 0; //Last element of message
+  message[len+3-2] = msg->crc;
+	message[len+3-1] = 0; //Last element of message
    
   int zero_count = 0; //variable to count number of zeros in message 
     
 	/*
 	* Store the position of 0's in the array_zeros
 	*/
-	for (int i = 0; i < len+2; i++) {
+	for (int i = 0; i < len+3; i++) {
     if (message[i] == 0) {
       array_zeros[zero_count] = i; 
       zero_count++;
