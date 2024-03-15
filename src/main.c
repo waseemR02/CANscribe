@@ -57,11 +57,10 @@ int len = 17;
  * Returns 0 on succes else -1
  */
 
-uint8_t* deserialized = malloc((len+2)*sizeof(uint8_t));
+int deserialize(uint8_t *message, struct canscribe_msg *msg, int len) {
 
-int deserialize(uint8_t *message, struct canscribe_msg *msg, int len = 17) {
-
-	uint8_t* array_zeros = malloc(len*sizeof(uint8_t));
+	message = malloc((len+2)*sizeof(uint8_t));
+  uint8_t* array_zeros = malloc(len*sizeof(uint8_t));
 
 	int i = 0;
   	int j = 0;
@@ -79,42 +78,39 @@ int deserialize(uint8_t *message, struct canscribe_msg *msg, int len = 17) {
 	free(array_zeros);
 
   	for (int i = 0; i < len; i++) {
-    	deserialized[i] = msg->frame.data[i+1];
+    	message[i] = msg->frame.data[i+1];
   	}
 	
 	return 0;
 }
 
 
-/*Array to store serialized data*/
-
-uint8_t* serialized = malloc((len+2)*sizeof(uint8_t));
-
 /*
  * Serialize with cobs
  * Returns 0 in success else -1
  */
-int serialize(uint8_t *message, struct canscribe_msg *msg, int len = 17) {
+int serialize(uint8_t *message, struct canscribe_msg *msg, int len) {
     
 	/*Allocate Memory*/
+  message = malloc((len+2)*sizeof(uint8_t));
   uint8_t* array_zeros = malloc((len+2)*sizeof(uint8_t));
 
 	/*
-	* Store the data and the zeros in the serialized array
+	* Store the data and the zeros in the message array
 	*/
-  serialized[0] = 0; //First element of serialized
+  message[0] = 0; //First element of message
 	for (int i = 0; i < len; i++) {
-  serialized[i+1] = msg->frame.data[i]; //assign values from struct in serialized
+  message[i+1] = msg->frame.data[i]; //assign values from struct in message
   }
-	serialized[len+2-1] = 0; //Last element of serialized
+	message[len+2-1] = 0; //Last element of message
    
-  int zero_count = 0; //variable to count number of zeros in serialized 
+  int zero_count = 0; //variable to count number of zeros in message 
     
 	/*
 	* Store the position of 0's in the array_zeros
 	*/
 	for (int i = 0; i < len+2; i++) {
-    if (serialized[i] == 0) {
+    if (message[i] == 0) {
       array_zeros[zero_count] = i; 
       zero_count++;
     }
@@ -127,7 +123,7 @@ int serialize(uint8_t *message, struct canscribe_msg *msg, int len = 17) {
 	*/
 	for (int i = 0; i < zero_count - 1; i++) {
     k = array_zeros[i+1] - array_zeros[i]; //Compute difference
-    serialized[(int)array_zeros[i]] = k;
+    message[(int)array_zeros[i]] = k;
   }
 
   free(array_zeros);
@@ -160,7 +156,7 @@ void serial_cb(const struct device *dev, void *user_data)
 			/* terminate the message with 0x00 */
 			rx_buf[rx_buf_pos] = 0x00;
 
-			deserialize(rx_buf, &msg);
+			deserialize(rx_buf, &msg, len);
 
 			/* if queue is full, message is silently dropped */
 			k_msgq_put(&uart_msgq, &msg, K_NO_WAIT);
@@ -189,26 +185,13 @@ void send_to_uart(uint8_t *buf, uint8_t len) {
  * 
  */
 bool valid_crc(struct canscribe_msg *msg) {
-  uint8_t gen_poly[10] = 4374732215;
-  for (int i = 0; i < 10; i++) { //33 is the length of the generator polynomial in binary form ie 1 0000 0100 1100 0001 0001 1101 1011 0111
-    msg->crc[i] = msg->frame.data[i];
-    do {
-      if (crc[0] == 1) {
-        for(int j = 1;j < 10; j++) {
-          msg->crc[j] = (( msg->crc[j] == gen_poly[j])?0:1);
-        }
-        msg->crc[j]=msg->frame.data[i++];
-      }while (i <= len+10-1);
-    }
-  }
-  for(i=0;(i<10-1) && (msg->crc[i]!='1');i++) {
-    if(i<10-1) {
-      return true;
-    }
-    else {
-	    return false;
-    }
-  }
+  long long int divisor = 0b100000100110000010001110110110111;
+  uint8_t dividend = msg->crc;
+
+  int reminder = dividend % divisor;
+
+  if (reminder == 0) return true;
+  else return false;
 }
 
 
@@ -224,6 +207,7 @@ void uart_can_thread(void *unused1, void *unused2, void *unused3) {
 	ARG_UNUSED(unused3);
 
 	int err;
+  ARG_UNUSED(err);
 	struct canscribe_msg temp_msg;
 
 	while(1) {
