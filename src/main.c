@@ -50,7 +50,7 @@ struct canscribe_msg {
 struct can_frame uart_can_frame;
 struct can_frame can_uart_frame;
 
-int len = sizeof(canscribe_msg);
+int len = 17;
 
 /*
  * Deserialize with cobs
@@ -59,7 +59,7 @@ int len = sizeof(canscribe_msg);
 
 uint8_t* deserialized = malloc((len+2)*sizeof(uint8_t));
 
-int deserialize(uint8_t *message, struct canscribe_msg *msg, int len) {
+int deserialize(uint8_t *message, struct canscribe_msg *msg, int len = 17) {
 
 	uint8_t* array_zeros = malloc(len*sizeof(uint8_t));
 
@@ -94,7 +94,7 @@ uint8_t* serialized = malloc((len+2)*sizeof(uint8_t));
  * Serialize with cobs
  * Returns 0 in success else -1
  */
-int serialize(uint8_t *message, struct canscribe_msg *msg, int len) {
+int serialize(uint8_t *message, struct canscribe_msg *msg, int len = 17) {
     
 	/*Allocate Memory*/
   uint8_t* array_zeros = malloc((len+2)*sizeof(uint8_t));
@@ -189,7 +189,26 @@ void send_to_uart(uint8_t *buf, uint8_t len) {
  * 
  */
 bool valid_crc(struct canscribe_msg *msg) {
-	return true;
+  uint8_t gen_poly[10] = 4374732215;
+  for (int i = 0; i < 10; i++) { //33 is the length of the generator polynomial in binary form ie 1 0000 0100 1100 0001 0001 1101 1011 0111
+    msg->crc[i] = msg->frame.data[i];
+    do {
+      if (crc[0] == 1) {
+        for(int j = 1;j < 10; j++) {
+          msg->crc[j] = (( msg->crc[j] == gen_poly[j])?0:1);
+        }
+        msg->crc[j]=msg->frame.data[i++];
+      }while (i <= len+10-1);
+    }
+  }
+  for(i=0;(i<10-1) && (msg->crc[i]!='1');i++) {
+    if(i<10-1) {
+      return true;
+    }
+    else {
+	    return false;
+    }
+  }
 }
 
 
