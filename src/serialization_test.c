@@ -132,13 +132,14 @@ int main() {
     msg.crc = 0;
     
     uint8_t *data;
+    data = (uint8_t *)malloc(18 * sizeof(uint8_t));
 
     serialize(data, &msg, 16);
-    /*printf("Serialized: ");
+    printf("Serialized: ");
     for (int i = 0; i < 16 + 2; i++) {
         printf("%d ", data[i]);
     }
-    printf("\n");*/
+    printf("\n");
 
     deserialize(data, &msg, 16);
     /*-----------------------------------------------------*/

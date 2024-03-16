@@ -1,4 +1,4 @@
-:#include <canscribe.h>
+#include <canscribe.h>
 
 /*
  * Serialize with COBS
@@ -9,9 +9,6 @@ void serialize(uint8_t *buf, struct canscribe_msg *msg, int len) {
 
 	/* Caste the cansribe message to a byte pointer */
 	uint8_t *byte_msg = (uint8_t *)msg;
-
-  /* Allocate memory for the message array */
-  buf = (uint8_t *)k_malloc((len+2) * sizeof(uint8_t);
 
 	/* Store the data and the zeros in the message array */
 	buf[0] = 0; // First element of message
@@ -46,33 +43,68 @@ void deserialize(uint8_t *buf, struct canscribe_msg *msg, int len) {
   
   uint8_t array_zeros[len+2];
   uint8_t decoded_msg[len];
-
-  buf = (uint8_t *)k_malloc((len+2) * sizeof(uint8_t));
-
+  
+  /* Initialize the arrays with 0 */
   for (int i = 0; i < len + 2; i++) {
     array_zeros[i] = 0;
   }
-
+  
   for (int i = 0; i < len; i++) {
     decoded_msg[i] = 0;
   }
 
   int i = 0, j = 0;
 
+  /*Store the indices of 0's in the array_zeros */
   while (j < len + 2) {
     array_zeros[j] = i;
     i = buf[i];
     j++;
   }
-
+  
+  /* New length of array_zeros */
   int new_len = sizeof(array_zeros)/sizeof(array_zeros[0]);
-
+  
+  /* Update the buffer with 0's at the positions stored in array_zeros */
   for (int k = 0; k < new_len; k++) {
     buf[array_zeros[k]] = 0;
   }
-
+  
+  /* Remove preceding and trailing 0's in buf and store in decoded_msg */
   for (int k = 0; k < len + 1; k++) {
     decoded_msg[k] = buf[k+1];
   }
+  
+  /* 
+   * Assign the decoded message to the struct 
+   */
+  
+  /* Assign first 4 bytes as id */
+  for (int k = 0; k < 4; k++) {
+    msg->frame.id[k] = decoded_msg[k];
+  }
+
+  /* Assign next 1 byte as dlc */
+  msg->frame.dlc = decoded_msg[4];
+
+  /* Assign next 1 byte as flags */
+  msg->frame.flags = decoded_msg[5];
+
+  /* Assign next 2 bytes as timestamp */
+  for (int k = 6; k < 8; k++) {
+    msg->frame.timestamp[k] = decoded_msg[k];
+  }
+
+  /* Assign next 1 byte as 8 bit data */
+  msg->frame.union.data = decoded_msg[8];
+  
+  /* Assign next 4 bytes as 32 bit data */
+  for (int k = 9; k < 13; k++) {
+    msg->frame.union.data_32[k] = decoded_msg[k];
+  }
+
+  /* Assign remaining 4 bytes as crc */
+  msg->crc = (uint32_t)decoded_msg[13] << 24 | (uint32_t)decoded_msg[14] << 16 | (uint32_t)decoded_msg[15] << 8 | (uint32_t)decoded_msg[16];
+
 }
 
