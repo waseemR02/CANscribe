@@ -29,6 +29,8 @@ void serialize(uint8_t *buf, struct canscribe_msg *msg, int len) {
 
 	/* Caste the cansribe message to a byte pointer */
 	uint8_t *byte_msg = (uint8_t *)msg;
+  
+  buf = (uint8_t *)malloc((len+2) * sizeof(uint8_t));
 
 	/* Store the data and the zeros in the message array */
 	buf[0] = 0; // First element of message
@@ -61,7 +63,7 @@ void deserialize(uint8_t* buf, struct canscribe_msg *msg, int len) {
   uint8_t array_zeros[len+2];
   uint8_t decoded_msg[len];
   
-  uint8_t *data = buf;
+  buf = (uint8_t *)malloc((len+2) * sizeof(uint8_t));
 
   for (int i = 0; i < len+2; i++) {
     array_zeros[i] = 0;
@@ -76,18 +78,18 @@ void deserialize(uint8_t* buf, struct canscribe_msg *msg, int len) {
   
   while (j < len) {
     array_zeros[j] = i;
-    i = data[i];
+    i = buf[i];
     j++;
   }
   
   int new_len = sizeof(array_zeros)/sizeof(array_zeros[0]);
 
   for (int k = 0; k < new_len; k++) {
-    data[array_zeros[k]] = 0;
+    buf[array_zeros[k]] = 0;
   }
 
   for (int k = 0; k < len + 1; k++) {
-    decoded_msg[k] = data[k+1];
+    decoded_msg[k] = buf[k+1];
   }
 }
 
