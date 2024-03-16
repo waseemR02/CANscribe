@@ -35,3 +35,41 @@ void serialize(uint8_t *buf, struct canscribe_msg *msg, int len) {
 		buf[array_zeroes[i]] = k;
 	}
 }
+
+/*
+ * Deserialize with COBS
+ * */
+void deserialize(uint8_t *buf, struct canscribe_msg *msg, int len) {
+  
+  uint8_t array_zeros[len+2];
+  uint8_t decoded_msg[len];
+
+  uint8_t *data = buf;
+
+  for (int i = 0; i < len + 2; i++) {
+    array_zeros[i] = 0;
+  }
+
+  for (int i = 0; i < len; i++) {
+    decoded_msg[i] = 0;
+  }
+
+  int i = 0, j = 0;
+
+  while (j < len + 2) {
+    array_zeros[j] = i;
+    i = data[i];
+    j++;
+  }
+
+  int new_len = sizeof(array_zeros)/sizeof(array_zeros[0]);
+
+  for (int k = 0; k < new_len; k++) {
+    buf[array_zeros[k]] = 0;
+  }
+
+  for (int k = 0; k < len + 1; k++) {
+    decoded_msg[k] = buf[k+1];
+  }
+}
+
