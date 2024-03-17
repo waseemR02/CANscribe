@@ -41,23 +41,4 @@ void serialize(uint8_t *buf, struct canscribe_msg *msg, int len) {
  */
 
 void deserialize(uint8_t *buf, struct canscribe_msg *msg, int len) {
-
-	uint8_t array_zeroes[len]; 
-
-	int i = 0;
-  	int j = 0;
-  
-  	while (j < len) {
-		array_zeroes[j] = i;
-		i = msg->frame.data[i];
-		j++;
-  	}
-
-  	for (int i = 0; i < len+2; i++) {
-		msg->frame.data[(int)array_zeroes[i]] = 0;
-  	}
-
-  	for (int i = 0; i < len; i++) {
-		buf[i] = msg->frame.data[i+1];
-  	}
 }
