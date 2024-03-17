@@ -18,6 +18,7 @@
 
 LOG_MODULE_REGISTER(can_read_test , CONFIG_LOG_DEFAULT_LEVEL);
 
+/* msg size is in correspondence with cobs serialization */
 #define UART_MSG_SIZE (sizeof(struct canscribe_msg) + 2)
 #define UART_CAN_THREAD_STACK_SIZE 512
 #define UART_CAN_THREAD_PRIORITY 2
@@ -44,41 +45,8 @@ static int rx_buf_pos;
 static uint8_t tx_buf[UART_MSG_SIZE];
 
 
-struct can_frame uart_can_frame;
-struct can_frame can_uart_frame;
-
-
-/*
- * Deserialize with cobs
- * Returns 0 on succes else -1
- */
-
-int deserialize(uint8_t *message, struct canscribe_msg *msg, int len) {
-
-	// message = malloc((len+2)*sizeof(uint8_t));
- //  uint8_t* array_zeros = malloc(len*sizeof(uint8_t));
-	//
-	// int i = 0;
- //  	int j = 0;
- //  
- //  	while (j < len) {
- //    	array_zeros[j] = i;
- //    	i = msg->frame.data[i];
- //    	j++;
- //  	}
-	//
- //  	for (int i = 0; i < len+2; i++) {
- //    	msg->frame.data[(int)array_zeros[i]] = 0;
- //  	}
-	//
-	// free(array_zeros);
-	//
- //  	for (int i = 0; i < len; i++) {
- //    	message[i] = msg->frame.data[i+1];
- //  	}
-	
-	return 0;
-}
+struct can_frame uart_can_frame; /* uart --> can */
+struct can_frame can_uart_frame; /* can --> uart */
 
 /*
  * Read characters from UART until line end is detected. Afterwards push the
@@ -100,10 +68,10 @@ void serial_cb(const struct device *dev, void *user_data)
 	while (uart_fifo_read(uart_dev, &c, 1) == 1) {
 		struct canscribe_msg msg;
 
-		if (c == 0x00 && rx_buf_pos > 0) {
+		if (c == 0 && rx_buf_pos > 0) {
 			// uart_fifo_read(uart_dev, &c, 1);
 			/* terminate the message with 0x00 */
-			rx_buf[rx_buf_pos] = 0x00;
+			rx_buf[rx_buf_pos] = 0;
 
 			deserialize(rx_buf, &msg, UART_MSG_SIZE);
 

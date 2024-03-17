@@ -2,7 +2,7 @@
 
 /*
  * Serialize with COBS
- * */ 
+ */ 
 void serialize(uint8_t *buf, struct canscribe_msg *msg, int len) {
     
 	uint8_t array_zeroes[len+2];
@@ -38,7 +38,7 @@ void serialize(uint8_t *buf, struct canscribe_msg *msg, int len) {
 
 /*
  * Deserialize with COBS
- * */
+ */
 void deserialize(uint8_t *buf, struct canscribe_msg *msg, int len) {
   
   uint8_t array_zeros[len+2] = {0};
@@ -72,4 +72,3 @@ void deserialize(uint8_t *buf, struct canscribe_msg *msg, int len) {
     decoded_msg[k] = buf[k+1];
   }
 }
-
