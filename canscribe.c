@@ -82,9 +82,7 @@ void deserialize(uint8_t *buf, struct canscribe_msg *msg, int len) {
    */
   
   /* Assign first 4 bytes as id */
-  for (int k = 0; k < 4; k++) {
-    msg->frame.id[k] = decoded_msg[k];
-  }
+  msg->frame.id = (uint32_t)decoded_msg[0] << 24 | (uint32_t)decoded_msg[1] << 16 | (uint32_t)decoded_msg[2] << 8 | (uint32_t)decoded_msg[3];
 
   /* Assign next 1 byte as dlc */
   msg->frame.dlc = decoded_msg[4];
@@ -93,16 +91,16 @@ void deserialize(uint8_t *buf, struct canscribe_msg *msg, int len) {
   msg->frame.flags = decoded_msg[5];
 
   /* Assign next 2 bytes as timestamp */
-  for (int k = 6; k < 8; k++) {
-    msg->frame.timestamp[k] = decoded_msg[k];
-  }
+  msg->frame.timestamp[k] = (uint32_t)decoded_msg[6] << 8 | (uint32_t)decoded_msg[7];
 
   /* Assign next 1 byte as 8 bit data */
-  msg->frame.union.data = decoded_msg[8];
+  msg->frame.union.data[0] = decoded_msg[8];
   
   /* Assign next 4 bytes as 32 bit data */
+  int index = 0;
   for (int k = 9; k < 13; k++) {
-    msg->frame.union.data_32[k] = decoded_msg[k];
+    msg->frame.union.data_32[index] = decoded_msg[k];
+    index++;
   }
 
   /* Assign remaining 4 bytes as crc */
