@@ -7,3 +7,4 @@ struct canscribe_msg {
 
 void serialize(uint8_t *buf, struct canscribe_msg *msg, int len);
 void deserialize(uint8_t *buf, struct canscribe_msg *msg, int len);
+bool valid_crc(struct canscribe_msg *msg);
