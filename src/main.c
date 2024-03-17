@@ -98,21 +98,6 @@ void send_to_uart(uint8_t *buf, uint8_t len) {
 
 
 /*
- * Checks if the message is valid
- * 
- */
-bool valid_crc(struct canscribe_msg *msg) {
-  long long int divisor = 0b100000100110000010001110110110111;
-  uint32_t dividend = msg->crc;
-
-  int reminder = dividend % divisor;
-
-  if (reminder == 0) return true;
-  else return false;
-}
-
-
-/*
  * This thread recieves uart messages and parses them to send to can bus
  */
 
