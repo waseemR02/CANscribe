@@ -17,6 +17,8 @@ struct canscribe_msg {
 
 struct canscribe_msg msg;
 
+struct canscribe_msg msg_deserialized;
+
 
 void serialize(uint8_t *buf, struct canscribe_msg *msg, int len) {
     
@@ -114,9 +116,11 @@ int main() {
     
 
     uint8_t * data = str;
+
     for (int i = 0; i < 8; i++) {
       msg.frame.data[i] = i;
-    };
+    }
+
     msg.frame.id = 123;
     msg.crc = 0;
     
@@ -124,6 +128,6 @@ int main() {
 
     serialize(data, &msg, 16);
 
-    deserialize(data, &msg, 16);
+    deserialize(data, &msg_deserialized, 16);
     return 0;
 }
