@@ -73,3 +73,13 @@ void deserialize(uint8_t *buf, struct canscribe_msg *msg, int len) {
     decoded_msg[k] = buf[k+1];
   }
 }
+
+bool valid_crc(struct canscribe_msg *msg) {
+  long long int divisor = 0b100000100110000010001110110110111;
+  uint32_t dividend = msg->crc;
+
+  int reminder = dividend % divisor;
+
+  if (reminder == 0) return true;
+  else return false;
+}
