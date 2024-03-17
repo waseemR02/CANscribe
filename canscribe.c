@@ -56,14 +56,16 @@ void deserialize(uint8_t *buf, struct canscribe_msg *msg, int len) {
   int i = 0, j = 0;
 
   /*Store the indices of 0's in the array_zeros */
-  while (j < len + 2) {
+  while (i < len + 1) {
     array_zeros[j] = i;
-    i = buf[i];
+    i += buf[i];
     j++;
   }
   
+  array_zeros[j] = len+1;
+
   /* New length of array_zeros */
-  int new_len = sizeof(array_zeros)/sizeof(array_zeros[0]);
+  int new_len = j+1;
   
   /* Update the buffer with 0's at the positions stored in array_zeros */
   for (int k = 0; k < new_len; k++) {
