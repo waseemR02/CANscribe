@@ -5,7 +5,7 @@
 
 struct can_frame {
     uint8_t data[8];
-    uint32_t id;
+    uint16_t id;
 };
 
 struct canscribe_msg {
@@ -13,15 +13,10 @@ struct canscribe_msg {
     uint32_t crc;
 };
 
-uint8_t* str_to_byte(char str[]) {
-    int len = strlen(str);
-    uint8_t* byte_val = malloc(len * sizeof(uint8_t));
 
-    for (int i = 0; i < len; i++) {
-        byte_val[i] = (uint8_t)str[i];
-    }
-    return byte_val;
-}
+
+struct canscribe_msg msg;
+
 
 void serialize(uint8_t *buf, struct canscribe_msg *msg, int len) {
     
@@ -29,8 +24,6 @@ void serialize(uint8_t *buf, struct canscribe_msg *msg, int len) {
 
 	/* Caste the cansribe message to a byte pointer */
 	uint8_t *byte_msg = (uint8_t *)msg;
-  
-  buf = (uint8_t *)malloc((len+2) * sizeof(uint8_t));
 
 	/* Store the data and the zeros in the message array */
 	buf[0] = 0; // First element of message
@@ -58,97 +51,79 @@ void serialize(uint8_t *buf, struct canscribe_msg *msg, int len) {
 	}
 }
 
-void deserialize(uint8_t* buf, struct canscribe_msg *msg, int len) {
+
+void deserialize(uint8_t *buf, struct canscribe_msg *msg, int len) {
   
   uint8_t array_zeros[len+2];
   uint8_t decoded_msg[len];
   
-  buf = (uint8_t *)malloc((len+2) * sizeof(uint8_t));
-
-  for (int i = 0; i < len+2; i++) {
+  /* Initialize the arrays with 0 */
+  for (int i = 0; i < len + 2; i++) {
     array_zeros[i] = 0;
   }
-
+  
   for (int i = 0; i < len; i++) {
     decoded_msg[i] = 0;
   }
 
-  int i = 0;
-  int j = 0;
-  
-  while (j < len) {
+  int i = 0, j = 0;
+
+  /*Store the indices of 0's in the array_zeros */
+  while (i < len+1) {
     array_zeros[j] = i;
-    i = buf[i];
+    i += buf[i];
     j++;
   }
-  
-  int new_len = sizeof(array_zeros)/sizeof(array_zeros[0]);
 
+  array_zeros[j] = len+1;
+  
+  /* New length of array_zeros */
+  int new_len = j+1;
+  
+  /* Update the buffer with 0's at the positions stored in array_zeros */
   for (int k = 0; k < new_len; k++) {
     buf[array_zeros[k]] = 0;
   }
-
-  for (int k = 0; k < len + 1; k++) {
+  
+  /* Remove preceding and trailing 0's in buf and store in decoded_msg */
+  for (int k = 0; k < len; k++) {
     decoded_msg[k] = buf[k+1];
   }
+  
+  /* 
+   * Assign the decoded message to the struct 
+   */
+  
+  /* Assign first 8 bytes as data */
+  for (int k = 0; k < 8; k++) {
+    msg->frame.data[k] = decoded_msg[k];
+  }
+
+  /* Assign next 2 byte as dlc */
+  msg->frame.id = (uint16_t)decoded_msg[8] << 8 | (uint16_t)decoded_msg[9];
+
+  /* Assign remaining 4 bytes as crc */
+  msg->crc = (uint32_t)decoded_msg[10] << 24 | (uint32_t)decoded_msg[11] << 16 | (uint32_t)decoded_msg[12] << 8 | (uint32_t)decoded_msg[13];
+
 }
 
 int main() {
 
-    /*
-    * Get the string and convert it to byte values
-    */
     const int MAX_LEN = 255;
     char str[MAX_LEN];
+    
 
-    /*printf("Type anything: ");
-    scanf("%s", str);
-    int len = strlen(str);
-
-    uint8_t* val = str_to_byte(str);
-
-    // Print the byte values
-    printf("Byte values: ");
-    for (int i = 0; i < len; i++) {
-        printf("%x ", val[i]);
-    }
-
-    printf("\n"); */
-
-    //free(val); // Free the allocated memory
-
-    /*------------------------------------------------*/
-
-    /*
-    * Serialize the byte values
-    */
-
-    struct canscribe_msg msg;
-    for(int i = 0; i < 8; i++) {
+    uint8_t * data = str;
+    for (int i = 0; i < 8; i++) {
       msg.frame.data[i] = i;
-    }
+    };
     msg.frame.id = 123;
-
     msg.crc = 0;
     
-    uint8_t *data;
-    data = (uint8_t *)malloc(18 * sizeof(uint8_t));
+    //data = (uint8_t *)malloc(18 * sizeof(uint8_t));
 
     serialize(data, &msg, 16);
-    printf("Serialized: ");
-    for (int i = 0; i < 16 + 2; i++) {
-        printf("%d ", data[i]);
-    }
-    printf("\n");
 
     deserialize(data, &msg, 16);
-    /*-----------------------------------------------------*/
-    free(data);
-    /*uint8_t* decoded_data = deserialize(data, len+2);
-    printf("Deserialized: ");
-    for (int i = 0; i < len; i++) {
-      printf("%x ", decoded_data[i]);
-    }
-    printf("\n");
-    return 0;*/
+    return 0;
 }
