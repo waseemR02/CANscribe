@@ -19,7 +19,7 @@ void serialize(uint8_t *buf, struct canscribe_msg *msg, int len) {
    
 	uint8_t zero_count = 0; //variable to count number of zeros in message 
     
-	/* Store the position of 0's in the array_zeros */
+	/* Store the position of 0's in the array_zeroes */
 	for (int i = 0; i < len+2; i++) {
 		if (buf[i] == 0) {
 			array_zeroes[zero_count] = i; 
@@ -41,7 +41,8 @@ void serialize(uint8_t *buf, struct canscribe_msg *msg, int len) {
  */
 void deserialize(uint8_t *buf, struct canscribe_msg *msg, int len) {
   
-  uint8_t array_zeros[len+2] = {0};
+  uint8_t array_zeroes[len+2];
+  memset(array_zeroes, 0, len+2);
   uint8_t *decoded_msg = (uint8_t *)msg;
   
   for (int i = 0; i < len; i++) {
@@ -50,21 +51,21 @@ void deserialize(uint8_t *buf, struct canscribe_msg *msg, int len) {
 
   int i = 0, j = 0;
 
-  /*Store the indices of 0's in the array_zeros */
+  /*Store the indices of 0's in the array_zeroes */
   while (i < len + 1) {
-    array_zeros[j] = i;
+    array_zeroes[j] = i;
     i += buf[i];
     j++;
   }
   
-  array_zeros[j] = len+1;
+  array_zeroes[j] = len+1;
 
-  /* New length of array_zeros */
+  /* New length of array_zeroes */
   int new_len = j+1;
   
-  /* Update the buffer with 0's at the positions stored in array_zeros */
+  /* Update the buffer with 0's at the positions stored in array_zeroes */
   for (int k = 0; k < new_len; k++) {
-    buf[array_zeros[k]] = 0;
+    buf[array_zeroes[k]] = 0;
   }
   
   /* Remove preceding and trailing 0's in buf and store in decoded_msg */
