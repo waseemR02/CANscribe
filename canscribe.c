@@ -41,7 +41,7 @@ void serialize(uint8_t *buf, struct canscribe_msg *msg, int len) {
  * */
 void deserialize(uint8_t *buf, struct canscribe_msg *msg, int len) {
   
-  uint8_t array_zeros[len+2] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  uint8_t array_zeros[len+2] = {0};
   uint8_t *decoded_msg = (uint8_t *)msg;
   
   for (int i = 0; i < len; i++) {
