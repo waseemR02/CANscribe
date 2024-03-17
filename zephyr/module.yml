@@ -1,0 +1,5 @@
+name: CANscribe 
+
+build:
+  cmake: zephyr/
+  kconfig: zephyr/Kconfig

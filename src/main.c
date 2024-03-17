@@ -14,14 +14,17 @@
 #include <zephyr/logging/log.h>
 #include <app_version.h>
 
+#include <canscribe.h>
+
 LOG_MODULE_REGISTER(can_read_test , CONFIG_LOG_DEFAULT_LEVEL);
 
-#define MSG_SIZE 100
+/* msg size is in correspondence with cobs serialization */
+#define UART_MSG_SIZE (sizeof(struct canscribe_msg) + 2)
 #define UART_CAN_THREAD_STACK_SIZE 512
 #define UART_CAN_THREAD_PRIORITY 2
 
 /* queue to store up to 10 messages (aligned to 1-byte boundary) */
-K_MSGQ_DEFINE(uart_msgq, MSG_SIZE, 10, 1);
+K_MSGQ_DEFINE(uart_msgq, sizeof(struct canscribe_msg), 10, 1);
 CAN_MSGQ_DEFINE(can_msgq, 10);
 
 /* Define stack size for uart to can thread */
@@ -37,33 +40,13 @@ const struct device *const can_dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_canbus));
 static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
 
 /* receive buffer used in UART ISR callback */
-static uint8_t rx_buf[MSG_SIZE];
+static uint8_t rx_buf[100];
 static int rx_buf_pos;
-static uint8_t tx_buf[MSG_SIZE];
+static uint8_t tx_buf[UART_MSG_SIZE];
 
-struct canscribe_msg {
-	struct can_frame frame;
-	uint32_t crc;
-};
 
-struct can_frame uart_can_frame;
-struct can_frame can_uart_frame;
-
-/*
- * Deserialize with cobs
- * Returns 0 on succes else -1
- */
-int deserialize(uint8_t *message, struct canscribe_msg *msg) {
-	return 0;
-}
-
-/*
- * Serialize with cobs
- * Returns 0 in success else -1
- */
-int serialize(uint8_t *message, struct canscribe_msg *msg) {
-	return 0;
-}
+struct can_frame uart_can_frame; /* uart --> can */
+struct can_frame can_uart_frame; /* can --> uart */
 
 /*
  * Read characters from UART until line end is detected. Afterwards push the
@@ -85,12 +68,12 @@ void serial_cb(const struct device *dev, void *user_data)
 	while (uart_fifo_read(uart_dev, &c, 1) == 1) {
 		struct canscribe_msg msg;
 
-		if (c == 0x00 && rx_buf_pos > 0) {
+		if (c == 0 && rx_buf_pos > 0) {
 			// uart_fifo_read(uart_dev, &c, 1);
 			/* terminate the message with 0x00 */
-			rx_buf[rx_buf_pos] = 0x00;
+			rx_buf[rx_buf_pos] = 0;
 
-			deserialize(rx_buf, &msg);
+			deserialize(rx_buf, &msg, UART_MSG_SIZE);
 
 			/* if queue is full, message is silently dropped */
 			k_msgq_put(&uart_msgq, &msg, K_NO_WAIT);
@@ -119,7 +102,13 @@ void send_to_uart(uint8_t *buf, uint8_t len) {
  * 
  */
 bool valid_crc(struct canscribe_msg *msg) {
-	return true;
+  long long int divisor = 0b100000100110000010001110110110111;
+  uint8_t dividend = msg->crc;
+
+  int reminder = dividend % divisor;
+
+  if (reminder == 0) return true;
+  else return false;
 }
 
 
@@ -135,6 +124,7 @@ void uart_can_thread(void *unused1, void *unused2, void *unused3) {
 	ARG_UNUSED(unused3);
 
 	int err;
+  ARG_UNUSED(err);
 	struct canscribe_msg temp_msg;
 
 	while(1) {
@@ -237,12 +227,10 @@ int main() {
 		k_msgq_get(&can_msgq, &can_uart_frame, K_FOREVER);
 		
 		can_uart_msg.frame = can_uart_frame;
-		can_uart_msg.crc = crc32_ieee((uint8_t *)&can_uart_frame, 17);
+		can_uart_msg.crc = crc32_ieee((uint8_t *)&can_uart_frame, sizeof(struct can_frame));
 
-		if(!serialize(tx_buf, &can_uart_msg)) {
-			LOG_ERR("Error serializing can message!!");
-		}
+		serialize(tx_buf, &can_uart_msg, sizeof(struct canscribe_msg));
 
-		send_to_uart(tx_buf, MSG_SIZE); // Look into how you are going to handle the size
+		send_to_uart(tx_buf, UART_MSG_SIZE); // Look into how you are going to handle the size
 	}
 }

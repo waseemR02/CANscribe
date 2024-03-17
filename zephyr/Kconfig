@@ -1,0 +1,4 @@
+config CANSCRIBE
+	bool "Enable CANscribe"
+	help
+	  This option enables CANscribe as a Zephyr module.
