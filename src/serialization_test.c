@@ -57,7 +57,7 @@ void serialize(uint8_t *buf, struct canscribe_msg *msg, int len) {
 void deserialize(uint8_t *buf, struct canscribe_msg *msg, int len) {
   
   uint8_t array_zeros[len+2];
-  uint8_t decoded_msg[len];
+  uint8_t *decoded_msg = (uint8_t *)msg;
   
   /* Initialize the arrays with 0 */
   for (int i = 0; i < len + 2; i++) {
@@ -97,16 +97,16 @@ void deserialize(uint8_t *buf, struct canscribe_msg *msg, int len) {
    */
   
   /* Assign first 8 bytes as data */
-  for (int k = 0; k < 8; k++) {
-    msg->frame.data[k] = decoded_msg[k];
-  }
-
-  /* Assign next 2 byte as dlc */
-  msg->frame.id = (uint16_t)decoded_msg[8] << 8 | (uint16_t)decoded_msg[9];
-
-  /* Assign remaining 4 bytes as crc */
-  msg->crc = (uint32_t)decoded_msg[10] << 24 | (uint32_t)decoded_msg[11] << 16 | (uint32_t)decoded_msg[12] << 8 | (uint32_t)decoded_msg[13];
-
+  // for (int k = 0; k < 8; k++) {
+  //   msg->frame.data[k] = decoded_msg[k];
+  // 
+  //
+  // /* Assign next 2 byte as dlc */
+  // msg->frame.id = (uint16_t)decoded_msg[8] << 8 | (uint16_t)decoded_msg[9];
+  //
+  // /* Assign remaining 4 bytes as crc */
+  // msg->crc = (uint32_t)decoded_msg[10] << 24 | (uint32_t)decoded_msg[11] << 16 | (uint32_t)decoded_msg[12] << 8 | (uint32_t)decoded_msg[13];
+	// msg = (struct canscribe_msg *)decoded_msg;
 }
 
 int main() {
