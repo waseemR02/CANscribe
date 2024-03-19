@@ -103,7 +103,7 @@ void send_to_uart(uint8_t *buf, uint8_t len) {
  */
 bool valid_crc(struct canscribe_msg *msg) {
   long long int divisor = 0b100000100110000010001110110110111;
-  uint8_t dividend = msg->crc;
+  uint32_t dividend = msg->crc;
 
   int reminder = dividend % divisor;
 
