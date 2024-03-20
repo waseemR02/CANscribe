@@ -16,17 +16,17 @@ void test_serialize() {
 
     msg.crc = 0x11223344;
 
-    uint8_t buf[23];
-    uint8_t expected[23] = {3, 35, 1, 1, 3, 8, 1, 1, 1, 12, 1, 2, 3, 4, 5, 6, 7, 68, 51, 34, 17, 1, 0};
-    serialize(buf, &msg, 21);
+    uint8_t buf[sizeof(struct canscribe_msg) + 2];
+    uint8_t expected[sizeof(struct canscribe_msg) + 2] = {3, 35, 1, 1, 3, 8, 1, 1, 1, 12, 1, 2, 3, 4, 5, 6, 7, 68, 51, 34, 17, 0};
+    serialize(buf, &msg, sizeof(struct canscribe_msg));
 
     // Assert expected serialized data
-    TEST_ASSERT_EQUAL_UINT8_ARRAY(expected, buf, 23);
+    TEST_ASSERT_EQUAL_UINT8_ARRAY(expected, buf, sizeof(buf));
 }
 
 void test_deserialize() {
     // Set up test data
-    uint8_t serialized_buf[23] = {3, 35, 1, 1, 3, 8, 1, 1, 1, 12, 1, 2, 3, 4, 5, 6, 7, 68, 51, 34, 17, 1, 0};
+    uint8_t serialized_buf[sizeof(struct canscribe_msg) + 2] = {3, 35, 1, 1, 3, 8, 1, 1, 1, 12, 1, 2, 3, 4, 5, 6, 7, 68, 51, 34, 17, 0};
 
     struct canscribe_msg expected_msg;
     for(uint8_t i = 0; i < 8; i++) {
@@ -39,7 +39,7 @@ void test_deserialize() {
     expected_msg.crc = 0x11223344;
     
     struct canscribe_msg msg;
-    deserialize(serialized_buf, &msg, 21);
+    deserialize(serialized_buf, &msg, sizeof(msg));
 
     // Assert expected deserialized data
     TEST_ASSERT_EQUAL_UINT8_ARRAY (expected_msg.frame.data, msg.frame.data, 8);
