@@ -98,17 +98,16 @@ void send_to_uart(uint8_t *buf, uint8_t len) {
 
 
 /*
- * Checks if the message is valid
- * 
- */
-bool valid_crc(struct canscribe_msg *msg) {
-  long long int divisor = 0b100000100110000010001110110110111;
-  uint32_t dividend = msg->crc;
+ * Validates against crc
+ */ 
+bool valid_crc(struct canscribe_msg *msg){
+	uint32_t rcd_crc = msg->crc;
+	uint32_t comp_crc = crc32_ieee((uint8_t *)&msg, sizeof(struct can_frame));
 
-  int reminder = dividend % divisor;
-
-  if (reminder == 0) return true;
-  else return false;
+	if (rcd_crc != comp_crc) 
+		return false;
+	
+	return true;
 }
 
 
