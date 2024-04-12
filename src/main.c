@@ -73,7 +73,7 @@ void serial_cb(const struct device *dev, void *user_data)
 			/* terminate the message with 0x00 */
 			rx_buf[rx_buf_pos] = 0;
 
-			deserialize(rx_buf, &msg, sizeof(msg));
+			deserialize(rx_buf, (uint8_t *)&msg, sizeof(msg));
 
 			/* if queue is full, message is silently dropped */
 			k_msgq_put(&uart_msgq, &msg, K_NO_WAIT);
@@ -228,7 +228,7 @@ int main() {
 		can_uart_msg.frame = can_uart_frame;
 		can_uart_msg.crc = crc32_ieee((uint8_t *)&can_uart_frame, sizeof(struct can_frame));
 
-		serialize(tx_buf, &can_uart_msg, sizeof(struct canscribe_msg));
+		serialize(tx_buf, (uint8_t *)&can_uart_msg, sizeof(struct canscribe_msg));
 
 		send_to_uart(tx_buf, UART_MSG_SIZE); // Look into how you are going to handle the size
 	}
