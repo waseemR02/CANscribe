@@ -3,12 +3,12 @@
 /*
  * Serialize with COBS
  */ 
-void serialize(uint8_t *buf, struct canscribe_msg *msg, int len) {
+void serialize(uint8_t *buf, uint8_t *msg, int len) {
     
 	uint8_t array_zeroes[len+2];
 
 	/* Caste the cansribe message to a byte pointer */
-	uint8_t *byte_msg = (uint8_t *)msg;
+	uint8_t *byte_msg = msg;
 
 	/* Store the data and the zeros in the message array */
 	buf[0] = 0; // First element of message
@@ -39,11 +39,11 @@ void serialize(uint8_t *buf, struct canscribe_msg *msg, int len) {
 /*
  * Deserialize with COBS
  */
-void deserialize(uint8_t *buf, struct canscribe_msg *msg, int len) {
+void deserialize(uint8_t *buf, uint8_t *msg, int len) {
   
 	uint8_t array_zeroes[len+2];
 	memset(array_zeroes, 0, len+2);
-	uint8_t *decoded_msg = (uint8_t *)msg;
+	uint8_t *decoded_msg = msg;
   
 	for (int i = 0; i < len; i++) {
 		decoded_msg[i] = 0;

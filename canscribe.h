@@ -5,5 +5,5 @@ struct canscribe_msg {
 	uint32_t crc;
 };
 
-void serialize(uint8_t *buf, struct canscribe_msg *msg, int len);
-void deserialize(uint8_t *buf, struct canscribe_msg *msg, int len);
+void serialize(uint8_t *buf, uint8_t *msg, int len);
+void deserialize(uint8_t *buf, uint8_t *msg, int len);
