@@ -1,4 +1,4 @@
-#include <canscribe.h>
+#include <canscribe/lib/canscribe.h>
 
 /*
  * Serialize with COBS

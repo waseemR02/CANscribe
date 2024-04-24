@@ -14,7 +14,7 @@
 #include <zephyr/logging/log.h>
 #include <app_version.h>
 
-#include <canscribe.h>
+#include <canscribe/lib/canscribe.h>
 
 LOG_MODULE_REGISTER(can_read_test , CONFIG_LOG_DEFAULT_LEVEL);
 

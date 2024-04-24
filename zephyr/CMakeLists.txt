@@ -1,6 +1,6 @@
 if(CONFIG_CANSCRIBE)
     set(CANSCRIBE_DIR ${ZEPHYR_CURRENT_MODULE_DIR})
-    zephyr_include_directories(${CANSCRIBE_DIR})
+    zephyr_include_directories(${CANSCRIBE_DIR}/include)
     zephyr_library()
-    zephyr_library_sources(${CANSCRIBE_DIR}/canscribe.c)
+    zephyr_library_sources(${CANSCRIBE_DIR}/lib/canscribe.c)
 endif()
