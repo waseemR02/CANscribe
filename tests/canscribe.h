@@ -13,3 +13,11 @@ struct can_frame {
 		uint32_t data_32[DIV_ROUND_UP(CAN_MAX_DLEN, sizeof(uint32_t))];
 	};
 };
+
+struct canscribe_msg {
+	struct can_frame frame;
+	uint32_t crc;
+};
+
+void serialize(uint8_t *buf, uint8_t *msg, int len);
+void deserialize(uint8_t *buf, uint8_t *msg, int len);
