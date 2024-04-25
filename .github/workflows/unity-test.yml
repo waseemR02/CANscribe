@@ -22,5 +22,5 @@ jobs:
       - name: Build and run tests
         run: |
           cd tests/
-          gcc *.c  ../canscribe.c -I ..  -o test
+          gcc *.c  -I .  -o test
           ./test
